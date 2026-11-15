@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NexaCore 2.0</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Press+Start+2P&family=Nunito:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+<!-- Base comune alle due viste: è quella che dava l'ambiente degli artefatti -->
+<style>
+html{box-sizing:border-box}
+body{margin:0; padding:0}
+img{max-width:100%}
+[hidden]:not([hidden=until-found i]){display:none!important}
+#vista-trivia{height:100%}
+html[data-vista="dashboard"] #vista-trivia, html:not([data-vista="dashboard"]) #vista-dashboard{display:none}
+</style>
+<!-- Un foglio per vista: quello della vista nascosta è spento da js/sito.js -->
+<link rel="stylesheet" href="css/trivia.css" id="css-trivia">
+<link rel="stylesheet" href="css/dashboard.css" id="css-dashboard" media="not all">
+<script src="js/sito.js"></script>
+</head>
+<body>
+
+<!-- ======================= TRIVIA ======================= -->
+<div id="vista-trivia">
+<div class="office" id="office" aria-hidden="true"></div>
+<div class="app" id="app">
+  <header class="top">
+    <div class="brand">NexaCore 2.0<small>Trivia del cambiamento</small></div>
+    <div class="top-actions">
+      <button class="pill" id="backNav" hidden>← Indietro</button>
+      <button class="pill" id="howBtn">Come funziona</button>
+    </div>
+  </header>
+  <div class="progress-row" id="progressRow">
+    <div class="progress" aria-hidden="true"><b id="bar"></b></div>
+    <span id="count">0/12</span>
+  </div>
+  <div class="actor-stage" id="stage">
+    <div class="say" id="bubble" aria-live="polite">Ciao! Sono Nexi.</div>
+    <svg class="px-svg actor" id="actor" viewBox="0 0 60 24" role="button" tabindex="0" aria-label="Nexi, la mascotte: toccalo">
+      <g class="ledge"><rect x="-40" y="22.6" width="140" height="1.2" class="o-desk"/><rect x="-40" y="23.8" width="140" height="0.6" class="o-leg"/></g>
+      <g id="propG"></g>
+      <g id="walker">
+        <rect x="18.5" y="22.2" width="11" height="1" class="c-sh"/>
+        <g id="hopG"><g transform="translate(16 9.4)"><g id="moodG"></g></g></g>
+        <g id="fxG"></g>
+      </g>
+    </svg>
+  </div>
+  <main id="screen"></main>
+</div>
+</div>
+
+<!-- ======================= DASHBOARD ======================= -->
+<div id="vista-dashboard">
+<div class="shell">
+  <main>
+    <div class="inner">
+      <div class="topbar">
+        <span class="brand" style="padding:0"><span class="logo">N</span><b>NexaCore</b></span>
+        <button class="menu-btn" id="menuBtn" aria-controls="side" aria-expanded="false">
+          <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Menu
+        </button>
+      </div>
+
+      <!-- ================= VISTA PERSONALE ================= -->
+      <div id="vista-personale">
+        <div class="head">
+          <div>
+            <div class="crumb">Dashboard / La mia vista</div>
+            <h1>Il tuo percorso nel cambiamento</h1>
+            <p>Cosa succede, che ruolo hai e come puoi dire la tua.</p>
+          </div>
+          <div class="pills"><div class="pill pill-rail"><span class="dot"></span><span class="rail-txt">Fase attuale: <b class="faseTxt">Avvio · M1</b></span><input type="range" class="faseSel" min="1" max="24" step="1" value="1" aria-label="Fase attuale: mese dello scenario, da M1 a M24"></div></div>
+        </div>
+
+        <div class="stack">
+          <section class="card" id="p-profilo">
+            <div class="picker" id="picker">
+              <div class="pf"><label for="selProfilo">Persona</label><select id="selProfilo"></select></div>
+              <div class="pf"><label for="selLinea">Linea di prodotto</label><select id="selLinea"></select></div>
+              <div class="pf"><label for="selFunzione">Funzione</label><select id="selFunzione"></select></div>
+            </div>
+            <div class="profile">
+              <div class="avatar" id="pIni">P</div>
+              <div class="pmain">
+                <div class="muted" style="font-size:12.5px">Il tuo profilo</div>
+                <h3 id="pNome"></h3>
+                <div class="pwhere" id="pDove"></div>
+              </div>
+              <div class="chips" id="pAssi"></div>
+            </div>
+            <p class="quote" id="pFrase"></p>
+          </section>
+
+          <section id="p-indicatori" style="scroll-margin-top:20px">
+            <div class="card-h" style="margin-bottom:12px"><div><h2>I tuoi KPI</h2><p>Come stai attraversando il cambiamento: adozione, apprendimento, partecipazione.</p></div><span class="tag sim">Dati simulati</span></div>
+            <div id="kpiP"></div>
+          </section>
+
+          <section class="card" id="p-pilota" hidden>
+            <div class="card-h"><div><h2>Pilota ERP · la tua linea</h2><p>La linea Servizi finanziari è il team di prodotto del pilota: per questo vedi l'avanzamento, come la governance.</p></div><span class="tag tagPilota">Da iniziare</span></div>
+            <ol class="steps" id="pilotaP"></ol>
+          </section>
+
+          <section class="card" id="p-roadmap">
+            <div class="card-h"><div><h2>Roadmap</h2><p>Il percorso di NexaCore in 24 mesi: 22 di lavoro e 2 di chiusura.</p></div><span class="now-flag"><i></i><span class="oggi">Oggi (M1)</span></span></div>
+            <div id="roadmapP"></div>
+          </section>
+
+          <section class="card" id="p-automazioni" hidden>
+            <div class="card-h"><div><h2>Automazioni · il tuo incarico</h2><p>Per i Champions fuori dalla linea pilota che hanno completato la formazione sull'AI e accettato l'incarico, con l'accordo del proprio responsabile.</p></div><span class="tag tagAuto">Da iniziare</span></div>
+            <div id="autoP"></div>
+          </section>
+
+          <div class="cols" id="p-ruolo">
+            <section class="card">
+              <div class="card-h"><div><h2>Il tuo ruolo nel cambiamento</h2><p>Comunicato da HR e dal responsabile del pilota.</p></div><span class="tag sim">Dati simulati</span></div>
+              <div id="rCorpo"></div><span id="rDove" hidden></span>
+            </section>
+            <section class="card">
+              <div class="card-h"><div><h2>La tua formazione</h2><p>Corsi e affiancamento per il tuo ruolo.</p></div><span class="tag sim">Dati simulati</span></div>
+              <ul class="courses" id="formP"></ul>
+            </section>
+          </div>
+
+          <div class="cols" id="p-feedback">
+            <section class="card">
+              <div class="card-h"><div><h2>Ti ritrovi nel tuo profilo?</h2><p>Ci aiuta a capire se il profilo descrive bene le persone.</p></div></div>
+              <div class="opts" id="ritrovi">
+                <button type="button" aria-pressed="false">Sì</button>
+                <button type="button" aria-pressed="false">In parte</button>
+                <button type="button" aria-pressed="false">No</button>
+              </div>
+              <label class="f" for="ritroviTxt">Cosa non ti descrive? (facoltativo)</label>
+              <textarea id="ritroviTxt"></textarea>
+              <label class="check"><input type="checkbox" id="colloquio"><span><b>Vorrei un colloquio per parlarne</b>Un incontro riservato con HR per capire insieme se il profilo ti rappresenta. Il profilo può essere rivisto.</span></label>
+              <div class="actions"><button class="btn" type="button" data-invia="ritroviOk">Invia</button><span class="ok" id="ritroviOk" hidden></span></div>
+            </section>
+            <section class="card">
+              <div class="card-h"><div><h2>Feedback anonimo</h2><p>Sempre aperto, non collegato al tuo nome.</p></div></div>
+              <label class="f" for="fbTxt" style="margin-top:0">Il tuo messaggio</label>
+              <textarea id="fbTxt"></textarea>
+              <div class="actions"><button class="btn" type="button" data-invia="fbOk">Invia</button><span class="ok" id="fbOk" hidden>Grazie. Demo: non viene salvato nulla.</span></div>
+            </section>
+          </div>
+
+          <section class="card" id="p-recognition">
+            <div class="card-h"><div><h2>Recognition</h2><p>Riconoscimenti ricevuti e come proporre un collega.</p></div><span class="tag sim">Dati simulati</span></div>
+            <div id="recP"></div>
+          </section>
+        </div>
+      </div>
+
+      <!-- ================= VISTA GOVERNANCE ================= -->
+      <div id="vista-governance" hidden>
+        <div class="head">
+          <div>
+            <div class="crumb">Dashboard / Governance</div>
+            <h1>Andamento del cambiamento</h1>
+            <p>Solo dati aggregati: un gruppo si mostra con almeno 10 risposte.</p>
+          </div>
+          <div class="pills"><div class="pill pill-rail"><span class="dot"></span><span class="rail-txt">Fase attuale: <b class="faseTxt">Avvio · M1</b></span><input type="range" class="faseSel" min="1" max="24" step="1" value="1" aria-label="Fase attuale: mese dello scenario, da M1 a M24"></div><span class="pill"><span class="dot amber"></span><span id="prossima"></span></span></div>
+        </div>
+
+        <div class="stack">
+          <section class="card" id="g-roadmap">
+            <div class="card-h"><div><h2>Roadmap</h2><p>24 mesi: pilota M2-M10, ondate fino a M22, chiusura M23-M24.</p></div><span class="now-flag"><i></i><span class="oggi">Oggi (M1)</span></span></div>
+            <div id="roadmapG"></div>
+          </section>
+
+          <section id="g-kpi" style="scroll-margin-top:20px">
+            <div class="card-h" style="margin-bottom:12px"><div><h2>KPI della governance</h2><p>Gli indicatori di cui risponde il team di governance: continuità operativa, rischi tecnologici, persone e conoscenze, budget.</p></div><span class="tag sim">Dati simulati</span></div>
+            <div id="kpiG"></div>
+          </section>
+
+          <section class="card" id="g-kpipers">
+            <div class="card-h"><div><h2>KPI delle persone, in aggregato</h2><p>Gli stessi 3 KPI che ogni persona vede nella propria vista, per persona e team. Mai i dati di un singolo.</p></div><span class="tag sim">Dati simulati</span></div>
+            <div id="aggG"></div>
+          </section>
+
+          <section class="card" id="g-pilota">
+            <div class="card-h"><div><h2>Pilota ERP · linea Servizi finanziari</h2><p>Tappe da M2 a M10. I go/no-go li decide il team di governance, con il parere consultivo di KPMG; quello di M10 sblocca la tranche 2.</p></div><span class="tag tagPilota">Da iniziare</span></div>
+            <ol class="steps" id="pilota"></ol>
+          </section>
+
+          <section class="card" id="g-automazioni">
+            <div class="card-h"><div><h2>Automazioni dei Champions</h2><p>Circa 32 Champions fuori dalla linea pilota, 4 per funzione. Lavorano entro il perimetro fissato dalla governance.</p></div><span class="tag tagAuto">Da iniziare</span></div>
+            <div id="autoG"></div>
+          </section>
+
+          <div class="cols" id="g-persone">
+            <section class="card">
+              <div class="card-h"><div><h2>Partecipazione e profili</h2><p>Champions, Fence sitters e Cinici con la regola del 15/11.</p></div><span class="tag sim">Dati simulati</span></div>
+              <div id="partG"></div>
+            </section>
+            <section class="card" id="g-ascolto">
+              <div class="card-h"><div><h2>Ascolto</h2><p>«Ti ritrovi nel tuo profilo?» e feedback anonimi.</p></div><span class="tag sim">Dati simulati</span></div>
+              <div id="ascoltoG"></div>
+            </section>
+          </div>
+
+          <section class="card" id="g-recognition">
+            <div class="card-h"><div><h2>Recognition</h2><p>Riconoscimenti assegnati per funzione e comportamenti premiati.</p></div><span class="tag ph">Segnaposto</span></div>
+            <p class="ph-text">Da definire con chi cura la recognition.</p>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="scrim" id="scrim"></div>
+  <aside class="side" id="side" aria-label="Menu">
+    <div class="brand"><span class="logo">N</span><div><b>NexaCore</b><small>Dashboard del cambiamento</small></div></div>
+    <div class="seg" role="group" aria-label="Vista">
+      <button type="button" data-vista="personale" aria-pressed="true">La mia vista</button>
+      <button type="button" data-vista="governance" aria-pressed="false">Governance</button>
+    </div>
+    <div class="navlbl">Sezioni</div>
+    <nav class="menu" id="menu"></nav>
+    <a class="trivia-link" id="toTrivia" href="#trivia"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>Torna al trivia</a>
+    <button type="button" class="theme-btn" id="themeBtn" aria-pressed="false"><svg viewBox="0 0 24 24" id="themeIc"></svg><span id="themeTxt">Tema scuro</span></button>
+    <div class="side-foot"><b>Versione dimostrativa</b>Dati simulati, nuovi a ogni apertura. Nessun dato reale.</div>
+  </aside>
+</div>
+</div>
+
+<script src="js/trivia.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>

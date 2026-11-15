@@ -1,4 +1,4 @@
-# NexaCore – Progetto KPMG
+# NexaCore – Progetto KPMG. FILE PER UTILI PER L'ANALISI DEL CASO:
 
 ## 🌐 [Apri il sito / Trivia interattivo](https://marcoaiello88.github.io/ProgettoNexaCore_KPMG/)
 

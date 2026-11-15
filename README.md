@@ -2,6 +2,6 @@
 
 ## 🌐 [Apri il sito / Trivia interattivo](https://marcoaiello88.github.io/ProgettoNexaCore_KPMG/)
 
-## 📄 [NexaCore_piano_integrato.pdf](materiale.pdf)
+## 📄 [Apri il PDF](NexaCore_piano_integrato.pdf)
 
 Paolo Gallignani, Marco Aiello, Alex Domeniconi, Michele Guidetti, Gloria Bleve, Pietro Chiodi

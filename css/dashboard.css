@@ -370,3 +370,51 @@ label.f{display:block; font-size:12.5px; font-weight:500; color:var(--ink-2); ma
 .trivia-link:hover{filter:brightness(.97)}
 .trivia-link svg{width:18px; height:18px; flex:none; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round}
 .trivia-link + .theme-btn{margin-top:0}
+
+/* ---------- Recognition (parte di Alex) ---------- */
+.rec-fase{display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; justify-content:space-between; padding:10px 14px; border-radius:10px; background:var(--soft); font-size:12.5px; color:var(--ink-2); margin-bottom:16px}
+.rec-fase b{color:var(--ink)}
+.rec-steps{display:flex; gap:6px; flex-wrap:wrap}
+.rec-steps span{font-size:11.5px; font-weight:600; border-radius:999px; padding:2px 10px; background:var(--panel); border:1px solid var(--line); color:var(--ink-3)}
+.rec-steps span.on{background:var(--accent-2); border-color:var(--accent); color:var(--accent-ink)}
+.rec-steps span.done{color:var(--ok-ink)}
+.rec-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr)); gap:16px; margin-top:16px; align-items:start}
+.rec-box{border:1px solid var(--line); border-radius:12px; padding:14px 16px; background:var(--panel); min-width:0}
+.rec-tags{display:flex; flex-wrap:wrap; gap:6px}
+.rec-tags button{border:1px solid var(--line); background:var(--panel); color:var(--ink-2); border-radius:999px; padding:5px 11px; font-size:12.5px; font-weight:500; cursor:pointer}
+.rec-tags button:hover{border-color:var(--accent)}
+.rec-tags button[aria-pressed="true"]{border-color:var(--accent); background:var(--accent-2); color:var(--accent-ink); font-weight:600}
+.btag{display:inline-block; font-size:11.5px; font-weight:600; border-radius:999px; padding:1px 9px; background:var(--accent-2); color:var(--accent-ink); white-space:nowrap}
+.btag.auto{background:var(--green-bg); color:var(--ok-ink)}
+.btag.bonus{background:var(--amber-bg); color:var(--ph-ink)}
+.rec-form select{width:100%}
+.rec-num{font:inherit; color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:7px 10px; box-shadow:var(--shadow); width:140px; max-width:100%}
+.rec-num:disabled{background:var(--soft); color:var(--ink-3)}
+.rec-form textarea{min-height:58px}
+.rec-hint{font-size:12px; color:var(--ink-3); margin:6px 0 0}
+.rec-err{color:#B42318; font-size:12.5px; font-weight:500}
+:root[data-theme="dark"] .rec-err{color:#FDA29B}
+.rec-prev{margin-top:14px; padding:10px 12px; border:1px dashed var(--line); border-radius:10px; font-size:13px; color:var(--ink-2)}
+.rec-prev p{margin:4px 0 0}
+.rwho{display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; font-size:12px; color:var(--ink-3)}
+.rwho b{color:var(--ink); font-size:13px}
+.rwho .pts{margin-left:auto; font-weight:700; color:var(--ink); font-size:12.5px; white-space:nowrap}
+.feed{list-style:none; margin:0; padding:0; display:grid; gap:10px}
+.feed li{border:1px solid var(--line); border-radius:10px; padding:10px 12px; display:grid; gap:4px}
+.feed p{margin:0; font-size:13px; color:var(--ink-2)}
+.cat-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr)); gap:10px}
+.cat-item{border:1px solid var(--line); border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:4px; align-items:flex-start}
+.cat-item .k-top{width:100%}
+.bars{display:grid; gap:10px}
+.barh{display:grid; grid-template-columns:minmax(110px,180px) 1fr 84px; gap:12px; align-items:center; font-size:12.5px}
+.barh small{display:block; color:var(--ink-3); font-size:11.5px}
+.barh .tr{position:relative; height:10px; border-radius:999px; background:var(--soft)}
+.barh .tr i{position:absolute; left:0; top:0; bottom:0; background:var(--bar-main); border-radius:999px}
+.barh .tr .goal{position:absolute; top:-4px; bottom:-4px; width:2px; background:var(--ink-2); border-radius:1px}
+.barh .v{text-align:right; font-variant-numeric:tabular-nums; color:var(--ink); font-weight:600}
+.barh .v small{display:inline; font-weight:500}
+@media (max-width:480px){ .barh{grid-template-columns:1fr 70px} .barh > div:first-child{grid-column:1 / -1} }
+.alerts{list-style:none; margin:0; padding:0; display:grid; gap:8px}
+.alerts li{display:flex; gap:10px; align-items:center; justify-content:space-between; padding:8px 12px; border:1px solid var(--line); border-radius:10px; font-size:12.5px; color:var(--ink-2)}
+.alerts li b{color:var(--ink); font-variant-numeric:tabular-nums; margin-left:auto; white-space:nowrap}
+.alerts li small{display:block; color:var(--ink-3); font-size:11.5px}

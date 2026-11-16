@@ -237,11 +237,6 @@
     "Procurement": ["Confronto preventivi fornitori", "Promemoria scadenze ordini", "Controllo ricezione merci", "Report spesa per fornitore", "Aggiornamento anagrafica fornitori"],
     "Customer Service": ["Smistamento richieste clienti", "Bozze di risposta standard", "Report reclami settimanale", "Stato ordini su richiesta", "Promemoria richiami ai clienti"]
   };
-  const MESSAGGI = [
-    "«Hai documentato la procedura e il collega l'ha ripetuta da solo.»",
-    "«Hai segnalato subito l'errore nei dati: l'abbiamo corretto prima del go-live.»",
-    "«Hai affiancato due colleghi sul nuovo processo: ora lavorano in autonomia.»"
-  ];
   function ruoloPersonale(){
     const cat = PERSONAS[scelta.codice].cat, pil = scelta.linea === LINEA_PILOTA, f = scelta.funzione;
     if (cat === "Champion") return pil
@@ -289,12 +284,7 @@
       <div><span>Ore risparmiate al mese</span><b class="on">${fmt(a.ore)}</b></div>
       <div class="has-ring">${a.n ? ring(PSIM.sostituto / 100, 30) : ""}<span>Con istruzioni e sostituto</span><b class="on">${a.n ? PSIM.sostituto + "%" : "—"}</b></div>
       <div><span>Riconoscimenti ricevuti</span><b class="on">${Math.round(a.n * PSIM.ricon)}</b></div></div>`;
-    const ric = ORA >= 3 ? Math.round((ORA - 2) * PSIM.ricon) : 0, punti = ORA >= 6 ? (ORA - 5) * PSIM.puntiMese : 0;
-    $("recP").innerHTML = `<div class="mini">
-      <div><span>Riconoscimenti ricevuti</span><b class="on">${ric}</b></div>
-      <div><span>Punti disponibili</span><b class="on">${ORA >= 6 ? fmt(punti) : "dal M6"}</b></div>
-      <div><span>Riconoscimenti che puoi dare</span><b class="on">${ORA >= 3 ? "sempre" : "dal M3"}</b></div></div>
-      ${ric ? `<p class="quote" style="margin:0">${MESSAGGI[PSIM.msg]}</p>` : `<p class="ph-text">I riconoscimenti partono dal M3: prima solo messaggi, poi punti e catalogo dal M6.</p>`}`;
+    $("recP").innerHTML = recPersonaleHTML();
   }
 
   /* ================= KPI del programma (piano/kpis.md, 15/11) ================= */
@@ -573,6 +563,281 @@
       <p class="note-s">Solo gruppi con almeno 10 persone. Se un gruppo resta sotto soglia, la causa si cerca prima nel contesto (formazione, carico, strumenti), non nelle persone.</p>`;
   }
 
+  /* ================= Recognition (parte di Alex: piano/fasi/4_Azione_struttura_cultura_recognition_alex.md) ================= */
+  /* Regole della demo (valori segnaposto, ip. = ipotesi):
+     - ogni riconoscimento è un messaggio pubblico con il tag obbligatorio di uno dei 5 comportamenti;
+     - M3-M5 solo messaggi e tag; punti e catalogo dal M6 nel perimetro pilota e automazioni, poi con le ondate;
+     - 100 punti al mese da donare (non si accumulano), massimo 30 allo stesso collega, mai a se stessi (ip.);
+     - 1 punto = 0,10 € (ip.); stesso catalogo nei 5 paesi, con valore indicizzato al costo locale;
+     - un'automazione registrata con istruzioni e sostituto genera un riconoscimento solo dopo la validazione del process owner;
+     - i bonus di milestone vanno al team intero e non si annunciano prima: compaiono solo quando vengono assegnati;
+     - nessun punto per il volume d'uso degli strumenti. */
+  const REC = { da:3, inizioPunti:6, budget:100, tetto:30, euro:.10, puntiAuto:20, licenza:30000 };
+  const euro = n => n.toLocaleString("it-IT", { style:"currency", currency:"EUR", maximumFractionDigits:0, useGrouping:"always" });
+  const meuro = n => `${(n / 1e6).toFixed(2).replace(".", ",")} M€`;
+  const COMPORTAMENTI = [
+    { id:"dati",  nome:"Decido con i dati",          timore:"Errori nella transizione",
+      cosa:"Ha chiuso tutti gli ordini a sistema il giorno stesso, senza il file personale", effetto:"il report del lunedì è uscito senza correzioni" },
+    { id:"ai",    nome:"Uso l'AI",                   timore:"AI non governata · cyber",
+      cosa:"Ha preparato le bozze delle offerte con lo strumento aziendale e ha verificato ogni cifra", effetto:"abbiamo risposto al cliente in un giorno invece di tre" },
+    { id:"doc",   nome:"Documento ciò che so",       timore:"Perdita di conoscenze",
+      cosa:"Ha scritto la procedura di chiusura degli ordini nella knowledge base", effetto:"ci ha risparmiato la telefonata di ogni lunedì" },
+    { id:"err",   nome:"Segnalo errori e incidenti", timore:"Errori · cyber",
+      cosa:"Ha segnalato in giornata un errore nei dati migrati", effetto:"l'abbiamo corretto prima che arrivasse ai clienti" },
+    { id:"aiuto", nome:"Aiuto un collega",           timore:"Resistenza al cambiamento",
+      cosa:"Ha affiancato due colleghi nella prima settimana del nuovo ERP", effetto:"ora chiudono il processo in autonomia" }
+  ];
+  const TAG = Object.fromEntries(COMPORTAMENTI.map(c => [c.id, c]));
+  const CATALOGO = [
+    { nome:"Gadget e buoni",           da:150,  a:500,  nota:"Buoni libro e pasto, abbonamenti, gadget." },
+    { nome:"Accessori per la casa",    da:800,  a:2000, nota:"Piccoli elettrodomestici, cucina, arredo." },
+    { nome:"Elettronica e smartphone", da:3000, a:8000, nota:"Soglia alta: per chi contribuisce molto, realisticamente una volta l'anno." }
+  ];
+  /* Indice del costo locale (Paese A = 100, ip.): il caso non nomina i paesi. */
+  const PAESI = [["Paese A · sede centrale", 100], ["Paese B", 94], ["Paese C", 78], ["Paese D", 106], ["Paese E", 86]];
+  /* Colleghi del modulo e messaggi ricevuti: nomi di fantasia. */
+  const COLLEGHI = [
+    { id:"giulia", nome:"Giulia R.", dove:"Finance & Administration · in sede" },
+    { id:"tomas",  nome:"Tomás L.",  dove:"Operations · da remoto, Paese C" },
+    { id:"anna",   nome:"Anna K.",   dove:"IT & Digital Transformation · Paese B" },
+    { id:"luca",   nome:"Luca M.",   dove:"Customer Service · da remoto" },
+    { id:"sofia",  nome:"Sofia D.",  dove:"Procurement · Paese E" },
+    { id:"team",   nome:"Il team della tua linea", dove:"messaggio al team" },
+    { id:"io",     nome:"Te stesso", dove:"auto-assegnazione" }
+  ];
+  const RICEVUTI = [
+    { da:"Anna K.",  dove:"IT & Digital Transformation", tag:"err",   pt:25, testo:"Hai segnalato in giornata l'errore nei profili di accesso: l'abbiamo corretto prima del go-live." },
+    { da:"Giulia R.", dove:"Finance & Administration",   tag:"aiuto", pt:20, testo:"Hai affiancato due colleghi sulla nuova fatturazione: ora la chiudono in autonomia." },
+    { da:"Sofia D.", dove:"Procurement · Paese E",       tag:"doc",   pt:15, testo:"Hai scritto la guida per gli ordini ai fornitori: l'ho seguita da sola, senza chiamarti." },
+    { da:"Responsabile della linea", dove:"messaggio al team", tag:"dati", pt:0, testo:"Per un mese tutte le attività sono state chiuse a sistema il giorno stesso: niente più file paralleli." }
+  ];
+  /* Bonus di milestone: al team intero, visibili solo dopo l'assegnazione. ~160 persone per linea delle ondate (ip.). */
+  const BONUS = [
+    { m:7,  linea:LINEA_PILOTA, team:"Team pilota Servizi finanziari", persone:65, cosa:"Go-live del pilota superato", pt:100 },
+    { m:10, linea:LINEA_PILOTA, team:"Team pilota Servizi finanziari", persone:65, cosa:"Pilota chiuso, estensione approvata", pt:150 },
+    { m:10, champ:true, team:"Champions delle automazioni", persone:32, cosa:"Prime automazioni candidate all'ERP", pt:100 },
+    ...Object.entries(FINE_ONDATA).map(([l, m], i) => ({ m, linea:l, team:`Linea ${l}`, persone:160, cosa:`Fine dell'ondata ${i + 1}`, pt:150 })),
+    { m:22, team:"Quarta linea", persone:160, cosa:"Fine dell'ondata 4", pt:150 }
+  ];
+  const RSIM = { giaDati: rnd(30, 55), giaA: { luca:20, anna:10 }, quotaDati: rnd(5, 9) / 10 };
+  const recStato = { bozza:{ a:"", tag:"", cosa:"", effetto:"", punti:"" }, inviati:[], esito:null };
+  const btag = id => `<span class="btag">${esc(TAG[id].nome)}</span>`;
+  const voce = (badge, chi, dove, pt, testo) =>
+    `<li><div class="rwho">${badge}<b>${esc(chi)}</b><span>${esc(dove)}</span>${pt ? `<span class="pts">+${pt} pt</span>` : ""}</div>${testo ? `<p>${esc(testo)}</p>` : ""}</li>`;
+  const comportamentiHTML = () => `<table style="margin-top:12px"><thead><tr><th>Comportamento</th><th>Timore del Board presidiato</th></tr></thead><tbody>${
+    COMPORTAMENTI.map((c, i) => `<tr><td><b>${i + 1}. ${esc(c.nome)}</b></td><td class="muted">${esc(c.timore)}</td></tr>`).join("")}</tbody></table>`;
+  function recFaseHTML(pd){
+    const s = (on, done, t) => `<span class="${on ? "on" : done ? "done" : ""}">${t}</span>`;
+    return `<div class="rec-fase"><div class="rec-steps">
+      ${s(ORA < REC.da, ORA >= REC.da, "M1-M2 · scelta dei 5 comportamenti")}
+      ${s(ORA >= REC.da && ORA < pd, ORA >= pd, `M3-M${pd - 1} · solo messaggi e tag`)}
+      ${s(ORA >= pd, false, `Dal M${pd} · punti e catalogo`)}</div>
+      <span>1 punto = <b>0,10 €</b> · ${REC.budget} punti al mese da donare · massimo ${REC.tetto} allo stesso collega</span></div>`;
+  }
+
+  /* ---------- Vista personale ---------- */
+  /* Punti: dal M6 per la linea pilota e i Champions delle automazioni, poi con l'ondata della propria linea;
+     le funzioni trasversali con l'ultima ondata (M18, ip.). */
+  const puntiDa = () => scelta.linea === LINEA_PILOTA || PERSONAS[scelta.codice].cat === "Champion" ? REC.inizioPunti : ONDATE[scelta.linea] ?? 18;
+  const mieiBonus = () => BONUS.filter(b => b.m <= ORA && b.m >= puntiDa() &&
+    (b.linea === scelta.linea || (b.champ && PERSONAS[scelta.codice].cat === "Champion" && scelta.linea !== LINEA_PILOTA)));
+  function recSaldo(){
+    const pd = puntiDa(), attivi = ORA >= pd, mesi = Math.max(0, ORA - pd + 1);
+    const auto = attivi ? autoPersonali().n * REC.puntiAuto : 0, bonus = mieiBonus().reduce((s, b) => s + b.pt, 0);
+    return { pd, attivi, saldo: mesi * PSIM.puntiMese + auto + bonus };
+  }
+  const datiNelMese = () => RSIM.giaDati + recStato.inviati.filter(x => x.mese === ORA).reduce((s, x) => s + x.punti, 0);
+  const datiA = id => (RSIM.giaA[id] ?? 0) + recStato.inviati.filter(x => x.mese === ORA && x.a === id).reduce((s, x) => s + x.punti, 0);
+  const conPunti = id => recSaldo().attivi && !!id && id !== "team" && id !== "io";
+  function anteprima(){
+    const b = recStato.bozza, col = COLLEGHI.find(c => c.id === b.a), testo = [b.cosa.trim(), b.effetto.trim()].filter(Boolean).join(": ");
+    if (!b.tag && !testo) return `<span class="muted">Anteprima del messaggio pubblico: che cosa ha fatto, che effetto ha avuto, tag del comportamento.</span>`;
+    const p = parseInt(b.punti, 10);
+    return `<div class="rwho">${b.tag ? btag(b.tag) : `<span class="rec-err">Manca il tag</span>`}<b>${col ? esc(col.nome) : "Destinatario da scegliere"}</b>${conPunti(b.a) && p > 0 ? `<span class="pts">+${p} pt</span>` : ""}</div>
+      ${testo ? `<p>«${esc(testo)}${/[.!?]$/.test(testo) ? "" : "."}»</p>` : ""}`;
+  }
+  function recFormHTML(){
+    const b = recStato.bozza, s = recSaldo(), col = COLLEGHI.find(c => c.id === b.a), t = TAG[b.tag];
+    const residuo = REC.budget - datiNelMese(), max = conPunti(b.a) ? Math.max(0, Math.min(REC.tetto - datiA(b.a), residuo)) : 0;
+    const nota = !s.attivi ? `I punti si attivano dal M${s.pd}: per ora si inviano solo messaggi con il tag, per costruire l'abitudine.`
+      : b.a === "team" ? "Al team si invia il messaggio. I punti al team arrivano con i bonus di milestone."
+      : b.a === "io" ? "Non si può riconoscere se stessi."
+      : col ? `Con ${esc(col.nome)} hai usato ${datiA(b.a)} punti su ${REC.tetto} questo mese. Puoi darne ancora ${max}.`
+      : `Ti restano ${residuo} punti da donare questo mese. Non si accumulano.`;
+    return `<label class="f" for="recA" style="margin-top:0">A chi</label>
+      <select id="recA"><option value="">Scegli un collega o il team</option>${COLLEGHI.map(c => `<option value="${c.id}"${c.id === b.a ? " selected" : ""}>${esc(c.nome)} · ${esc(c.dove)}</option>`).join("")}</select>
+      ${b.a === "sofia" ? `<p class="rec-hint">Sofia D. ti ha riconosciuto questo mese. Puoi ricambiare, ma gli scambi reciproci frequenti entrano nei controlli a campione.</p>` : ""}
+      <label class="f">Comportamento <span class="muted">· obbligatorio</span></label>
+      <div class="rec-tags" role="group" aria-label="Comportamento">${COMPORTAMENTI.map(c => `<button type="button" data-tag="${c.id}" aria-pressed="${c.id === b.tag}">${esc(c.nome)}</button>`).join("")}</div>
+      <label class="f" for="recCosa">Che cosa ha fatto</label>
+      <textarea id="recCosa" placeholder="${esc(t ? t.cosa : "Un comportamento preciso, non «sei bravo»")}">${esc(b.cosa)}</textarea>
+      <label class="f" for="recEff">Che effetto ha avuto</label>
+      <textarea id="recEff" placeholder="${esc(t ? t.effetto : "Che cosa è cambiato per il lavoro o per i colleghi")}">${esc(b.effetto)}</textarea>
+      <label class="f" for="recPt">Punti</label>
+      <input type="number" class="rec-num" id="recPt" min="0" max="${max}" step="5" value="${esc(b.punti)}" ${conPunti(b.a) ? `placeholder="da 0 a ${max}"` : `disabled placeholder="—"`}>
+      <p class="rec-hint">${nota}</p>
+      <div class="rec-prev" id="recPrev">${anteprima()}</div>
+      <div class="actions"><button class="btn" type="button" id="recInvia">Pubblica</button><span class="${recStato.esito?.ok ? "ok" : "rec-err"}" role="status">${esc(recStato.esito?.testo ?? "")}</span></div>
+      ${recStato.inviati.length ? `<h3 class="sub" style="margin-top:16px">Inviati da te in questa sessione</h3><ul class="feed">${recStato.inviati.slice().reverse().map(x =>
+        voce(btag(x.tag), COLLEGHI.find(c => c.id === x.a).nome, `M${x.mese}`, x.punti, x.testo)).join("")}</ul>` : ""}`;
+  }
+  function recInvia(){
+    const b = recStato.bozza, p = parseInt(b.punti, 10) || 0, cp = conPunti(b.a);
+    const err = !b.a ? "Scegli a chi va il riconoscimento."
+      : b.a === "io" ? "Auto-assegnazione bloccata: non puoi riconoscere te stesso."
+      : !b.tag ? "Il tag è obbligatorio: scegli uno dei 5 comportamenti."
+      : b.cosa.trim().length < 10 ? "Scrivi che cosa ha fatto, con un comportamento preciso."
+      : !b.effetto.trim() ? "Scrivi che effetto ha avuto sul lavoro."
+      : p < 0 ? "I punti non possono essere negativi."
+      : cp && p > REC.tetto - datiA(b.a) ? `Tetto per collega: con questa persona puoi dare ancora ${REC.tetto - datiA(b.a)} punti questo mese.`
+      : cp && p > REC.budget - datiNelMese() ? `Budget del mese: ti restano ${REC.budget - datiNelMese()} punti.`
+      : "";
+    if (err) recStato.esito = { ok:false, testo:err };
+    else {
+      const testo = `${b.cosa.trim()}: ${b.effetto.trim()}`;
+      recStato.inviati.push({ a:b.a, tag:b.tag, testo: /[.!?]$/.test(testo) ? testo : testo + ".", punti: cp ? p : 0, mese:ORA });
+      recStato.esito = { ok:true, testo:"Pubblicato nella bacheca aziendale. Demo: non viene salvato nulla." };
+      recStato.bozza = { a:"", tag:"", cosa:"", effetto:"", punti:"" };
+    }
+    $("recP").innerHTML = recPersonaleHTML();
+  }
+  function ricevutiHTML(s){
+    const voci = [], a = autoPersonali();
+    mieiBonus().slice(-1).forEach(b => voci.push(voce(`<span class="btag bonus">Bonus di milestone al team</span>`, b.team, `M${b.m}`, b.pt,
+      `${b.cosa}. Il bonus va a tutto il team, compreso chi ha lavorato dietro le quinte.`)));
+    if (a.n && ORA >= 4) voci.push(voce(`<span class="btag auto">Dal registro delle automazioni</span>`, `Process owner · ${scelta.funzione}`, "validata", s.attivi ? REC.puntiAuto : 0,
+      `Automazione «${a.esempi[a.esempi.length - 1]}» registrata con istruzioni e sostituto, validata dal process owner.`));
+    RICEVUTI.slice(0, Math.max(1, 4 - voci.length)).forEach((r, i) => {
+      const m = Math.max(REC.da, ORA - i);
+      voci.push(voce(btag(r.tag), r.da, `${r.dove} · M${m}`, m >= s.pd ? r.pt : 0, r.testo));
+    });
+    return `<ul class="feed">${voci.join("")}</ul>`;
+  }
+  function catalogoHTML(s){
+    const scade = s.pd + 18 <= MESI ? `M${s.pd + 18}` : "dopo M24";
+    return `<div class="rec-box" style="margin-top:16px"><h3 class="sub">Catalogo premi · tre fasce</h3>
+      <div class="cat-grid">${CATALOGO.map(c => {
+        const f = s.attivi ? s.saldo / c.da : 0, ok = f >= 1;
+        return `<div class="cat-item"><div class="k-top"><b>${esc(c.nome)}</b>${ring(Math.min(1, f), 28)}</div>
+          <span class="k-m">${fmt(c.da)}-${fmt(c.a)} punti · ${euro(c.da * REC.euro)}-${euro(c.a * REC.euro)}</span>
+          <span class="rec-hint" style="margin:0">${esc(c.nota)}</span>
+          <span class="st ${!s.attivi ? "na" : ok ? "ok" : "na"}">${!s.attivi ? `Dal M${s.pd}` : ok ? "Raggiungibile ora" : `Mancano ${fmt(c.da - s.saldo)} punti`}</span></div>`;
+      }).join("")}</div>
+      <p class="note-s">I punti scadono dopo 18-24 mesi${s.attivi ? ` (i primi a ${scade})` : ""} e sono fuori dalla retribuzione fissa: riconoscono un contributo, non sono un diritto acquisito. Stesso catalogo nei 5 paesi, con valore indicizzato al costo locale.</p></div>`;
+  }
+  function recPersonaleHTML(){
+    const s = recSaldo();
+    if (ORA < REC.da) return recFaseHTML(s.pd) + `<p class="ph-text">La piattaforma apre a M3. In M1-M2 Champions e responsabili scelgono nei workshop i 5 comportamenti da riconoscere, uguali in tutti i paesi:</p>${comportamentiHTML()}`;
+    const ric = Math.round((ORA - 2) * PSIM.ricon) + (autoPersonali().n && ORA >= 4 ? 1 : 0) + mieiBonus().length;
+    const dati = Math.round((ORA - 2) * PSIM.ricon * RSIM.quotaDati) + recStato.inviati.length, residuo = REC.budget - datiNelMese();
+    return recFaseHTML(s.pd) + `<div class="mini" style="margin-bottom:0">
+        <div><span>Riconoscimenti ricevuti</span><b class="on">${ric}</b></div>
+        <div><span>Riconoscimenti dati</span><b class="on">${dati}</b></div>
+        <div><span>Saldo punti</span><b class="on">${s.attivi ? `${fmt(s.saldo)}<small> = ${euro(s.saldo * REC.euro)}</small>` : `<small>dal M${s.pd}</small>`}</b></div>
+        <div class="has-ring">${s.attivi ? ring(residuo / REC.budget, 30) : ""}<span>Da donare questo mese</span><b class="on">${s.attivi ? `${residuo}<small> / ${REC.budget}</small>` : `<small>dal M${s.pd}</small>`}</b></div></div>
+      <div class="rec-grid">
+        <div class="rec-box rec-form"><h3 class="sub">Invia un riconoscimento</h3><div id="recForm">${recFormHTML()}</div></div>
+        <div class="rec-box"><h3 class="sub">Ricevuti di recente</h3>${ricevutiHTML(s)}</div>
+      </div>${catalogoHTML(s)}`;
+  }
+  /* Eventi del modulo: delegati sul contenitore, che si ridisegna a ogni cambio di mese o profilo. */
+  $("recP").addEventListener("click", e => {
+    const t = e.target.closest("[data-tag]");
+    if (t) { recStato.bozza.tag = t.dataset.tag; recStato.esito = null; $("recForm").innerHTML = recFormHTML(); $("recForm").querySelector(`[data-tag="${t.dataset.tag}"]`)?.focus(); return; }
+    if (e.target.closest("#recInvia")) recInvia();
+  });
+  $("recP").addEventListener("change", e => {
+    if (e.target.id !== "recA") return;
+    recStato.bozza.a = e.target.value; recStato.esito = null; $("recForm").innerHTML = recFormHTML(); $("recA").focus();
+  });
+  $("recP").addEventListener("input", e => {
+    const k = { recCosa:"cosa", recEff:"effetto", recPt:"punti" }[e.target.id]; if (!k) return;
+    recStato.bozza[k] = e.target.value; $("recPrev").innerHTML = anteprima();
+  });
+
+  /* ---------- Vista governance: solo aggregati, valori che seguono il mese ---------- */
+  const GSIM = (() => ({ cov0:rnd(30, 40), covMax:rnd(74, 82), gap0:rnd(14, 18), gapMin:rnd(4, 8), uso:rnd(60, 75) / 100,
+    top10:rnd(22, 31), pari:rnd(66, 80), reciproci:rnd(3, 12), tetto:rnd(3, 8) / 100, autoTent:rnd(2, 6), audit:rnd(88, 96),
+    off:FUNZIONI.map(() => rnd(-16, 8)), tagJ:COMPORTAMENTI.map(() => rnd(-12, 12) / 100) }))();
+  const covM = m => m < REC.da ? 0 : GSIM.cov0 + (GSIM.covMax - GSIM.cov0) * (1 - Math.exp(-(m - REC.da) / 5));
+  const gapM = m => GSIM.gapMin + (GSIM.gap0 - GSIM.gapMin) * Math.exp(-(m - REC.da) / 6);
+  const ricM = m => m < REC.da ? 0 : Math.round(850 * (.25 + .9 * (1 - Math.exp(-(m - REC.da) / 4))));
+  /* Perimetro dei punti: pilota (~65) e Champions delle automazioni (32) dal M6, poi ~160 persone per ondata (ip.); tutti dal M18. */
+  const perimetro = m => m < REC.inizioPunti ? 0 : m >= 18 ? 850 : 97 + Object.values(ONDATE).filter(x => x <= m).length * 160;
+  function pesiTag(m){
+    const w = [1, .6, 1.1, .7, 1.3];
+    if (m >= 6 && m <= 8) { w[3] += .6; w[4] += .4; }    // go-live del pilota: segnalazioni e affiancamento
+    w[1] += Math.min(.6, Math.max(0, m - 4) * .05);       // le automazioni crescono
+    if (m >= 7) w[0] += .4;                               // dopo il go-live si lavora sul dato ERP
+    return w.map((x, i) => x * (1 + GSIM.tagJ[i]));
+  }
+  const barra = (nome, sub, frac, val, titolo, goal) => `<div class="barh" title="${esc(titolo)}"><div>${esc(nome)}${sub ? `<small>${esc(sub)}</small>` : ""}</div>
+    <div class="tr"><i style="width:${Math.max(1, Math.min(100, frac * 100))}%"></i>${goal != null ? `<span class="goal" style="left:${goal}%"></span>` : ""}</div><div class="v">${val}</div></div>`;
+  const allarme = (testo, sub, val, st) => `<li><div>${testo}${sub ? `<small>${sub}</small>` : ""}</div><b>${val}</b>${st ? `<span class="st ${st[1]}">${st[0]}</span>` : ""}</li>`;
+  function recGovHTML(){
+    if (ORA < REC.da) return recFaseHTML(REC.inizioPunti) + `<p class="ph-text">La piattaforma apre a M3. In M1-M2 il team di governance fa scegliere nei workshop con Champions e responsabili i 5 comportamenti, uguali in tutti i paesi:</p>${comportamentiHTML()}`;
+    const cov = Math.round(covM(ORA)), gap = Math.round(gapM(ORA)), pres = Math.round(covM(ORA) + .3 * gapM(ORA)), rem = Math.round(covM(ORA) - .7 * gapM(ORA));
+    const per = perimetro(ORA), donati = Math.round(per * REC.budget * GSIM.uso), punti = per > 0;
+    const da = Math.max(REC.da, ORA - 2), tri = Array.from({ length:ORA - da + 1 }, (_, i) => ricM(da + i)).reduce((s, x) => s + x, 0);
+    const w = pesiTag(ORA), sw = w.reduce((s, x) => s + x, 0), cnt = w.map(x => Math.round(tri * x / sw)), maxc = Math.max(...cnt);
+    const st = (v, ok, warn) => v >= ok ? ["In soglia", "ok"] : v >= warn ? ["Sotto soglia", "warn"] : ["Contatto mirato", "ko"];
+
+    const numeri = `<div class="mini" style="margin-bottom:0">
+      <div><span>Riconoscimenti nel mese</span><b class="on">${fmt(ricM(ORA))}</b></div>
+      <div class="has-ring">${ring(cov / 70, 30)}<span>Danno e ricevono nel trimestre · obiettivo ≥70%</span><b class="on">${cov}%</b></div>
+      <div><span>Divario presenza/remoto · obiettivo sotto 10</span><b class="on">${gap} pt</b></div>
+      <div><span>Riconoscimenti dati tra pari, non dai capi</span><b class="on">${GSIM.pari}%</b></div>
+      <div><span>Punti donati nel mese</span><b class="on">${punti ? `${fmt(donati)}<small> = ${euro(donati * REC.euro)}</small>` : `<small>dal M${REC.inizioPunti}</small>`}</b></div></div>`;
+
+    const distribuzione = `<div class="rec-box"><h3 class="sub">Comportamenti riconosciuti · M${da}-M${ORA}</h3><div class="bars">${COMPORTAMENTI.map((c, i) =>
+        barra(c.nome, c.timore, cnt[i] / maxc, `${fmt(cnt[i])} <small>${pc(cnt[i], tri)}%</small>`, `${c.nome}: ${fmt(cnt[i])} riconoscimenti, ${pc(cnt[i], tri)}% del trimestre`)).join("")}</div>
+      <p class="note-s">Il tag misura quali comportamenti si diffondono, per funzione e paese, senza un questionario: è comportamento osservato.</p></div>`;
+
+    const funz = FUNZIONI.map((f, i) => ({ f, v: Math.max(5, Math.min(98, cov + GSIM.off[i])) }));
+    const copertura = `<div class="rec-box"><h3 class="sub">Copertura nel trimestre · danno e ricevono</h3><div class="bars">
+        ${barra("In presenza", "70% delle persone", pres / 100, `${pres}%`, `In presenza: ${pres}% (obiettivo 70%)`, 70)}
+        ${barra("Da remoto", "30% delle persone", rem / 100, `${rem}%`, `Da remoto: ${rem}% (obiettivo 70%)`, 70)}</div>
+      <p class="note-s" style="margin-bottom:10px">La linea verticale è l'obiettivo del 70%. Divario di ${gap} punti: ${gap < 10 ? "in soglia" : "fuori soglia, l'obiettivo è sotto 10"}.</p>
+      <table><thead><tr><th>Funzione</th><th class="n">Copertura</th><th class="n">Stato</th></tr></thead><tbody>${funz.map(x => {
+        const s = st(x.v, 70, 60);
+        return `<tr><td>${esc(x.f)}</td><td class="n">${x.v}%</td><td class="n"><span class="st ${s[1]}">${s[0]}</span></td></tr>`; }).join("")}</tbody></table>
+      <p class="note-s">Una funzione silenziosa è un segnale sul team e sul contesto (remoto, carico, formazione), non sulle persone: il referente di funzione e sede organizza un contatto mirato. Non è una classifica.</p></div>`;
+
+    const reciproci = Math.round(GSIM.reciproci * Math.min(1, (ORA - 2) / 6)), prossimaPub = ORA + ((2 - (ORA - REC.da) % 3) + 3) % 3;
+    const equita = `<div class="rec-box"><h3 class="sub">Equità e anti-abuso</h3><ul class="alerts">
+        ${allarme("Auto-assegnazioni tentate", "bloccate dal sistema", GSIM.autoTent, ["Bloccate", "ok"])}
+        ${allarme("Coppie con scambi reciproci frequenti", "segnalate al controllo a campione", reciproci, reciproci > 8 ? ["Da verificare", "warn"] : ["Nella norma", "ok"])}
+        ${allarme("Coppie al tetto di 30 punti nel mese", "", punti ? fmt(Math.round(per * GSIM.tetto)) : "—", punti ? ["Monitorate", "ok"] : null)}
+        ${allarme("Controllo a campione sul 5% dei messaggi", "tag coerente con il testo", `${GSIM.audit}%`, GSIM.audit >= 90 ? ["In soglia", "ok"] : ["Sotto soglia", "warn"])}
+        ${allarme("Punti ricevuti dal 10% più premiato", "obiettivo ≤30%", punti ? `${GSIM.top10}%` : "—", punti ? (GSIM.top10 <= 30 ? ["In soglia", "ok"] : ["Sopra soglia", "warn"]) : null)}
+        ${allarme("Riconoscimenti dati tra pari", "obiettivo ≥60%: il potere di riconoscere è distribuito", `${GSIM.pari}%`, ["In soglia", "ok"])}</ul>
+      <p class="note-s">La distribuzione dei punti per funzione, paese e fascia d'età si pubblica ogni trimestre: prossima a M${prossimaPub}.</p></div>`;
+
+    const a = autoSim(), val = Math.round(a.tot * SIM.sostituto / 100), bonus = BONUS.filter(b => b.m <= ORA && b.m >= REC.inizioPunti);
+    const automazioni = `<div class="rec-box"><h3 class="sub">Dal registro delle automazioni</h3><ul class="alerts">
+        ${allarme("Automazioni nel registro", "", fmt(a.tot))}
+        ${allarme("Validate dal process owner e riconosciute", "riconoscimento automatico, dopo la validazione", fmt(val), a.tot ? ["Riconosciute", "ok"] : null)}
+        ${allarme("In attesa di validazione", "mancano istruzioni o sostituto", fmt(a.tot - val), a.tot - val ? ["In attesa", "na"] : null)}</ul>
+      <p class="note-s">Nessun punto per il volume d'uso degli strumenti: premierebbe l'uso dell'AI fuori dal semaforo.</p>
+      <h3 class="sub" style="margin-top:16px">Bonus di milestone assegnati</h3>
+      ${bonus.length ? `<ul class="feed">${bonus.map(b => voce(`<span class="btag bonus">M${b.m}</span>`, b.team, `${b.cosa} · ~${b.persone} persone · ${euro(b.persone * b.pt * REC.euro)}`, b.pt, "")).join("")}</ul>`
+        : `<p class="ph-text">Nessun bonus assegnato finora.</p>`}
+      <p class="note-s">I bonus non si annunciano in anticipo: compaiono qui solo quando la governance li assegna. Vanno al team intero: i punti indicati sono per ciascuno, compreso chi ha preparato o verificato i dati.</p></div>`;
+
+    const costoPunti = donati * 12 * REC.euro, costoBonus = bonus.filter(b => b.m > ORA - 12).reduce((s, b) => s + b.persone * b.pt * REC.euro, 0);
+    const annuo = costoPunti + costoBonus + REC.licenza;
+    const costo = `<div class="rec-box"><h3 class="sub">Costo e valore del punto</h3><ul class="alerts">
+        ${allarme(`Proiezione annua al ritmo di M${ORA}`, "budget 0,10-0,15 M€ l'anno, 60-120 € per dipendente", meuro(annuo), annuo <= 150000 ? ["Nel budget", "ok"] : ["Fuori budget", "ko"])}
+        ${allarme("Punti donati in un anno", `al ritmo attuale: ${fmt(per)} persone nel perimetro, budget usato al ${punti ? Math.round(GSIM.uso * 100) : 0}%`, euro(costoPunti))}
+        ${allarme("Bonus di milestone", "ultimi 12 mesi", euro(costoBonus))}
+        ${allarme("Licenza della piattaforma", "ipotesi", euro(REC.licenza))}</ul>
+      <table style="margin-top:12px"><thead><tr><th>Paese</th><th class="n">Indice costo locale</th><th class="n">1 punto</th><th class="n">100 punti</th></tr></thead><tbody>${PAESI.map(([p, i]) =>
+        `<tr><td>${esc(p)}</td><td class="n">${i}</td><td class="n">${(REC.euro * i / 100).toFixed(3).replace(".", ",")} €</td><td class="n">${euro(REC.euro * i)}</td></tr>`).join("")}</tbody></table>
+      <p class="note-s">Stesso catalogo in tutti i paesi: il premio costa all'azienda il prezzo locale, il collega spende gli stessi punti.</p></div>`;
+
+    return recFaseHTML(REC.inizioPunti) + numeri + `<div class="rec-grid">${distribuzione}${copertura}${equita}${automazioni}</div><div class="rec-grid">${costo}</div>`;
+  }
+
   /* Mese corrente dello scenario, scelto dal selettore "Fase attuale" (ricordato nel browser). */
   /* All'apertura si parte sempre da metà pilota (M8), così tutti i valori simulati sono visibili; la rotaia porta indietro o avanti. */
   let ORA = 8;
@@ -614,6 +879,7 @@
     $("aggG").innerHTML = aggregatiHTML();
     $("partG").innerHTML = partecipazioneHTML();
     $("ascoltoG").innerHTML = ascoltoHTML();
+    $("recG").innerHTML = recGovHTML();
     document.querySelectorAll(".autoFunz").forEach(e => e.textContent = scelta.funzione);
     for (const [cls, da, a] of [["tagPilota", 2, 10], ["tagAuto", 2, 22]]) {
       const [testo, c] = tagStato(da, a);

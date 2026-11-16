@@ -20,6 +20,10 @@ html[data-vista="dashboard"] #vista-trivia, html:not([data-vista="dashboard"]) #
 <!-- Un foglio per vista: quello della vista nascosta è spento da js/sito.js -->
 <link rel="stylesheet" href="css/trivia.css" id="css-trivia">
 <link rel="stylesheet" href="css/dashboard.css" id="css-dashboard" media="not all">
+<!-- Trivia in 3D (solo grafica): Nexi e l'ufficio con three.js. Per tornare alla pixel art, togliere queste tre righe e lo script js/trivia-3d.js in fondo; per confrontarle al volo, aggiungere ?3d=0 all'indirizzo. -->
+<link rel="stylesheet" href="css/trivia-3d.css">
+<script>if (!/[?&]3d=0\b/.test(location.search)) { document.documentElement.classList.add("t3d-wait"); setTimeout(function () { document.documentElement.classList.remove("t3d-wait"); }, 4000); }</script>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }</script>
 <script src="js/sito.js"></script>
 </head>
 <body>
@@ -231,5 +235,6 @@ html[data-vista="dashboard"] #vista-trivia, html:not([data-vista="dashboard"]) #
 
 <script src="js/trivia.js"></script>
 <script src="js/dashboard.js"></script>
+<script type="module" src="js/trivia-3d.js"></script>
 </body>
 </html>
